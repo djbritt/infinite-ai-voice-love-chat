@@ -174,8 +174,8 @@ select {
     <div>Be Patient</div>
     <button onclick="toggleAudio()">Start/Stop Audio</button>
     <div>
-        <input type="text" id="userInput" placeholder="Type your message...">
-        <button id="sendButton">Send</button>
+        <!-- <input type="text" id="userInput" placeholder="Type your message...">
+        <button id="sendButton">Send</button> -->
     </div>
     <div id="conversationHistory"></div>
     <div id="debugLog"></div>
@@ -483,13 +483,13 @@ function sendMessage() {
     }
 }
 
-document.getElementById('sendButton').addEventListener('click', sendMessage);
-document.getElementById('userInput').addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
-    }
-});
+// document.getElementById('sendButton').addEventListener('click', sendMessage);
+// document.getElementById('userInput').addEventListener('keydown', (event) => {
+//     if (event.key === 'Enter' && !event.shiftKey) {
+//         event.preventDefault();
+//         sendMessage();
+//     }
+// });
 
 // Ensure voices are loaded
 speechSynthesis.onvoiceschanged = function() {
