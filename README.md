@@ -4,4 +4,5 @@ The voices Daniel and Karen I think only work on desktop.
 
 Try it here! https://djbritt.github.io/infinite-ai-voice-love-chat/
 
-<img width="848" alt="Screen Shot 2024-08-12 at 10 59 34 PM" src="https://github.com/user-attachments/assets/40b52d7a-c033-4af2-aa73-265bef9fb05d">
+<img width="819" alt="image" src="https://github.com/user-attachments/assets/ca23a4ee-6bc0-4454-a341-1ddbf9e2e973">
+
