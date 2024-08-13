@@ -1,0 +1,517 @@
+<html><head><base href="https://websim.infinitelove.com/themed-dialogue/" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Powered Themed Infinite Love Dialogue with Enhanced Variety</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+    padding: 20px;
+}
+
+.container {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 800px;
+    width: 100%;
+}
+
+.dialogue {
+    font-size: 18px;
+    margin-bottom: 20px;
+    min-height: 50px;
+}
+
+.male {
+    color: #4a90e2;
+}
+
+.female {
+    color: #e2574a;
+}
+
+button, select {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+select {
+    background-color: #3498db;
+}
+
+.voice-selection, .theme-selection, .model-selection {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.voice-group, .theme-group, .model-group {
+    margin: 10px;
+}
+
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+#debugLog {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 20px;
+    text-align: left;
+    height: 200px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+#userInput {
+    width: 80%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+#sendButton {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+#conversationHistory {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 20px;
+    text-align: left;
+}
+
+.history-male {
+    color: #4a90e2;
+}
+
+.history-female {
+    color: #e2574a;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>AI-Powered Themed Infinite Love Dialogue</h1>
+    <div class="voice-selection">
+        <div class="voice-group">
+            <h3>Select Male Voice</h3>
+            <select id="maleVoice"></select>
+        </div>
+        <div class="voice-group">
+            <h3>Select Female Voice</h3>
+            <select id="femaleVoice"></select>
+        </div>
+    </div>
+    <div class="theme-selection">
+        <div class="theme-group">
+            <h3>Select Theme</h3>
+            <select id="themeSelect">
+                <option value="romantic">Romantic</option>
+                <option value="passionate">Passionate</option>
+                <option value="playful">Playful</option>
+                <option value="poetic">Poetic</option>
+                <option value="soulful">Soulful</option>
+                <option value="erotic">Erotic</option>
+            </select>
+        </div>
+    </div>
+    <div class="model-selection">
+        <div class="model-group">
+            <h3>Select AI Model</h3>
+            <select id="modelSelect">
+                <option value="">Loading models...</option>
+            </select>
+        </div>
+    </div>
+    <p class="dialogue"><span class="male"></span></p>
+    <p class="dialogue"><span class="female"></span></p>
+    <div>Be Patient</div>
+    <button onclick="toggleAudio()">Start/Stop Audio</button>
+    <div>
+        <input type="text" id="userInput" placeholder="Type your message...">
+        <button id="sendButton">Send</button>
+    </div>
+    <div id="conversationHistory"></div>
+    <div id="debugLog"></div>
+</div>
+
+<script>
+let isPlaying = false;
+let dialogueInterval;
+let maleVoice, femaleVoice;
+let currentTheme = "romantic";
+let selectedModel = 'llama-3-70b-chat-turbo';
+let currentChatId = null;
+let conversationHistory = [];
+let dialogueQueue = [];
+let isSpeaking = false;
+
+const systemPrompt = "You are an AI assistant helping to generate themed love dialogue between a male and female character. Please provide responses that capture the essence of the given theme, ensuring they are appropriate, creative, and distinct for each character. Each response should be under 50 words. Start the male response with 'Male:' and the female response with 'Female:'. Ensure each response is unique and builds upon the conversation naturally.";
+
+const themePrompts = {
+    romantic: "Create a tender and affectionate dialogue exchange between two lovers. Focus on deep emotional connection, gentle expressions of love, and romantic gestures. Male speaks first, then female responds.",
+    passionate: "Generate an intense and fervent dialogue between two deeply in love individuals. Include passionate declarations, strong emotions, and a sense of desire and longing. Male speaks first, then female responds.",
+    playful: "Craft a lighthearted and fun conversation between a couple. Include teasing, jokes, witty banter, and playful flirtation. Male speaks first, then female responds.",
+    poetic: "Compose a lyrical and metaphorical exchange between two lovers. Use vivid imagery, beautiful language, and poetic devices to express their love. Male speaks first, then female responds.",
+    soulful: "Create a profound and meaningful dialogue that explores the deep spiritual connection between two individuals. Focus on shared values, life philosophies, and a sense of destined partnership. Male speaks first, then female responds.",
+    erotic: "Pure sexual erotic talk between a male and female, turn each other on!!! Male speaks first, then female responds."
+};
+
+function getThemePrompt(theme) {
+    return themePrompts[theme] || themePrompts.romantic; // Default to romantic if theme not found
+}
+
+function debugLog(message) {
+    const debugLogElement = document.getElementById('debugLog');
+    const timestamp = new Date().toLocaleTimeString();
+    debugLogElement.innerHTML += `[${timestamp}] ${message}<br>`;
+    debugLogElement.scrollTop = debugLogElement.scrollHeight;
+}
+
+function addLoadingSpinner() {
+    const spinner = document.createElement('div');
+    spinner.className = 'loading';
+    document.querySelector('.container').appendChild(spinner);
+    return spinner;
+}
+
+function getCurrentChatMessages() {
+    // return conversationHistory;
+    return conversationHistory.slice(-0); // Only return the last 5 messages
+}
+
+function updateConversationHistory(maleText, femaleText) {
+    const historyDiv = document.getElementById('conversationHistory');
+    historyDiv.innerHTML += `<p><span class="history-male">Male: ${maleText}</span></p>`;
+    historyDiv.innerHTML += `<p><span class="history-female">Female: ${femaleText}</span></p>`;
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+
+    conversationHistory.push({ role: 'assistant', content: `Male: ${maleText}\nFemale: ${femaleText}` });
+    if (conversationHistory.length > 10) {
+        conversationHistory.shift();
+    }
+}
+
+function sendMessageToAI(message) {
+    debugLog('Sending message to AI...');
+    const loadingSpinner = addLoadingSpinner();
+    fetch('https://api.discord.rocks/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: selectedModel,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: getThemePrompt(currentTheme) },
+                ...getCurrentChatMessages(),
+                { role: 'user', content: message }
+            ],
+            max_tokens: 150
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        loadingSpinner.remove();
+        if (data.choices && data.choices.length > 0) {
+            const content = data.choices[0].message.content;
+            const lines = content.split('\n');
+            let maleText = '', femaleText = '';
+
+            for (const line of lines) {
+                if (line.startsWith('Male:')) {
+                    maleText = line.substring(5).trim();
+                } else if (line.startsWith('Female:')) {
+                    femaleText = line.substring(7).trim();
+                    break; // We only need the first male and female response
+                }
+            }
+
+            if (maleText && femaleText) {
+                updateDialogue(maleText, femaleText);
+                updateConversationHistory(maleText, femaleText);
+                debugLog('AI response received and dialogue updated');
+            } else {
+                throw new Error('Invalid response format');
+            }
+        } else {
+            throw new Error('AI response invalid');
+        }
+    })
+    .catch(error => {
+        loadingSpinner.remove();
+        console.error('Error sending message to AI:', error);
+        debugLog(`Error: ${error.message}`);
+    });
+}
+
+function updateDialogue(maleText, femaleText) {
+    dialogueQueue.push({ male: maleText, female: femaleText });
+    if (!isSpeaking) {
+        speakNextDialogue();
+    }
+}
+
+function speakNextDialogue() {
+    if (dialogueQueue.length === 0) {
+        isSpeaking = false;
+        return;
+    }
+
+    isSpeaking = true;
+    const { male, female } = dialogueQueue.shift();
+
+    const maleDialogue = document.querySelector('.male');
+    const femaleDialogue = document.querySelector('.female');
+
+    maleDialogue.textContent = male;
+    femaleDialogue.textContent = female;
+
+    speakLove(male, true, () => {
+        setTimeout(() => {
+            speakLove(female, false, () => {
+                speakNextDialogue();
+            });
+        }, 500);
+    });
+}
+
+function speakLove(text, isMale, onEndCallback) {
+    debugLog(`Speaking ${isMale ? 'male' : 'female'} dialogue: ${text}`);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+
+    utterance.voice = isMale ? maleVoice : femaleVoice;
+    utterance.pitch = isMale ? 0.9 : 1.1;
+    utterance.rate = 0.9;
+
+    utterance.onend = onEndCallback;
+
+    speechSynthesis.speak(utterance);
+}
+
+function toggleAudio() {
+    if (!isPlaying) {
+        debugLog('Attempting to start audio...');
+        if (!maleVoice || !femaleVoice) {
+            debugLog('Error: Voice not selected');
+            alert("Please select both male and female voices before starting.");
+            return;
+        }
+        isPlaying = true;
+        dialogueInterval = setInterval(() => sendMessageToAI(`Continue the ${currentTheme} themed love dialogue between the male and female characters. Provide a new, unique exchange that builds upon the previous conversation.`), 10000);
+        sendMessageToAI(`Generate a ${currentTheme} themed love dialogue exchange between a male and female character. Male speaks first, then female responds. Make it unique and engaging.`);
+        debugLog('Audio started successfully');
+    } else {
+        debugLog('Stopping audio...');
+        isPlaying = false;
+        clearInterval(dialogueInterval);
+        speechSynthesis.cancel();
+        debugLog('Audio stopped');
+    }
+}
+
+function populateVoiceList() {
+    debugLog('Populating voice list...');
+    const voices = speechSynthesis.getVoices();
+    const maleSelect = document.getElementById('maleVoice');
+    const femaleSelect = document.getElementById('femaleVoice');
+
+
+    let danielVoice, karenVoice;
+
+    maleSelect.innerHTML = '';
+    femaleSelect.innerHTML = '';
+
+    voices.forEach((voice, index) => {
+        if (voice.lang.startsWith('en')) {
+            const option = document.createElement('option');
+            option.textContent = `${voice.name} (${voice.lang})`;
+            option.setAttribute('data-voice-index', index);
+
+            if (voice.name.includes('Daniel')) {
+                danielVoice = voice;
+            } else if (voice.name.includes('Karen')) {
+                karenVoice = voice;
+            }
+
+            if (voice.name.includes('Male') || voice.name.includes('male')) {
+                maleSelect.appendChild(option);
+            } else if (voice.name.includes('Female') || voice.name.includes('female')) {
+                femaleSelect.appendChild(option);
+            } else {
+                // If gender is not specified, add to both lists
+                maleSelect.appendChild(option.cloneNode(true));
+                femaleSelect.appendChild(option);
+            }
+        }
+    });
+
+    debugLog(`Populated voice list with ${voices.length} voices`);
+
+    if (danielVoice) {
+        maleVoice = danielVoice;
+        maleSelect.value = `${danielVoice.name} (${danielVoice.lang})`;
+        debugLog(`Default male voice set to Daniel`);
+    }
+
+    if (karenVoice) {
+        femaleVoice = karenVoice;
+        femaleSelect.value = `${karenVoice.name} (${karenVoice.lang})`;
+        debugLog(`Default female voice set to Karen`);
+    }
+
+
+    maleSelect.addEventListener('change', () => {
+        const selectedIndex = maleSelect.selectedOptions[0].getAttribute('data-voice-index');
+        maleVoice = voices[selectedIndex];
+        debugLog(`Male voice selected: ${maleVoice ? maleVoice.name : 'Unknown'}`);
+    });
+
+    femaleSelect.addEventListener('change', () => {
+        const selectedIndex = femaleSelect.selectedOptions[0].getAttribute('data-voice-index');
+        femaleVoice = voices[selectedIndex];
+        debugLog(`Female voice selected: ${femaleVoice ? femaleVoice.name : 'Unknown'}`);
+    });
+}
+
+// Theme selection
+const themeSelect = document.getElementById('themeSelect');
+themeSelect.addEventListener('change', () => {
+    currentTheme = themeSelect.value;
+    debugLog(`Theme changed to: ${currentTheme}`);
+    conversationHistory = []; // Reset conversation history when theme changes
+    document.getElementById('conversationHistory').innerHTML = ''; // Clear displayed history
+    if (isPlaying) {
+        clearInterval(dialogueInterval);
+        dialogueInterval = setInterval(() => sendMessageToAI(`Continue the ${currentTheme} themed love dialogue between the male and female characters. Provide a new, unique exchange that builds upon the previous conversation.`), 10000);
+        sendMessageToAI(`Generate a ${currentTheme} themed love dialogue exchange between a male and female character. Male speaks first, then female responds. Make it unique and engaging.`);
+    }
+});
+
+// Fetch AI models
+function fetchAIModels() {
+    debugLog('Fetching AI models...');
+    fetch('https://api.discord.rocks/v1/models')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('modelSelect');
+            select.innerHTML = ''; // Clear loading option
+            data.data.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.id;
+                select.appendChild(option);
+            });
+            select.value = 'llama-3-70b-chat-turbo';
+            selectedModel = 'llama-3-70b-chat-turbo';
+            debugLog(`AI models fetched. Default model: ${selectedModel}`);
+        })
+        .catch(error => {
+            console.error('Error fetching AI models:', error);
+            debugLog(`Error fetching AI models: ${error.message}`);
+            const select = document.getElementById('modelSelect');
+            select.innerHTML = '<option value="">Error loading models</option>';
+        });
+}
+
+// Model selection
+const modelSelect = document.getElementById('modelSelect');
+modelSelect.addEventListener('change', () => {
+    selectedModel = modelSelect.value;
+    debugLog(`AI model changed to: ${selectedModel}`);
+});
+
+// Handle send button click and Enter key press
+function sendMessage() {
+    const userInput = document.getElementById('userInput');
+    const message = userInput.value.trim();
+    if (message) {
+        debugLog(`User message: ${message}`);
+        sendMessageToAI(`User input: ${message}\nContinue the ${currentTheme} themed dialogue based on this input. Provide male and female responses.`);
+        userInput.value = '';
+    }
+}
+
+document.getElementById('sendButton').addEventListener('click', sendMessage);
+document.getElementById('userInput').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+});
+
+// Ensure voices are loaded
+speechSynthesis.onvoiceschanged = function() {
+    debugLog('Voices changed event triggered');
+    populateVoiceList();
+};
+
+// Initial population attempt (for browsers that load voices immediately)
+populateVoiceList();
+
+// Fetch AI models
+fetchAIModels();
+
+// Add error handling for API calls
+window.onerror = function(message, source, lineno, colno, error) {
+    console.error('An error occurred:', error);
+    debugLog(`Global error: ${message}`);
+    alert('An error occurred. Please check the console and debug log for more details.');
+};
+
+debugLog('Script initialized with enhanced variety features');
+</script>
+
+</body>
+</html>
